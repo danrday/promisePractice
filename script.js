@@ -58,26 +58,54 @@ function addTextToPage(content) {
 }
 
 
+// getJSON('story.json').then(function(story) {
+//   addHtmlToPage(story.heading);
+//   return story.chapterUrls.reduce(function(sequence, chapterUrl) {
+//     console.log("sequence:", sequence)
+//     // Once the last chapter's promise is done…
+//     return sequence.then(function() {
+//       // …fetch the next chapter
+//       console.log("sequence2", sequence)
+//       return getJSON(chapterUrl);
+//     }).then(function(chapter) {
+//       // and add it to the page
+//       addHtmlToPage(chapter.html);
+//     });
+//   }, Promise.resolve());
+// }).then(function() {
+//   // And we're all done!
+//   addTextToPage("All done");
+// }).catch(function(err) {
+//   // Catch any error that happened along the way
+//   addTextToPage("Argh, broken: " + err.message);
+// }).then(function() {
+//   // Always hide the spinner
+//   document.querySelector('.spinner').style.display = 'none';
+// })
+
 getJSON('story.json').then(function(story) {
   addHtmlToPage(story.heading);
 
-  return story.chapterUrls.reduce(function(sequence, chapterUrl) {
-    // Once the last chapter's promise is done…
-    return sequence.then(function() {
-      // …fetch the next chapter
-      return getJSON(chapterUrl);
-    }).then(function(chapter) {
-      // and add it to the page
-      addHtmlToPage(chapter.html);
-    });
-  }, Promise.resolve());
+  // Map our array of chapter urls to
+  // an array of chapter json promises.
+  // This makes sure they all download parallel.
+  return story.chapterUrls.map(getJSON)
+    .reduce(function(sequence, chapterPromise) {
+      // Use reduce to chain the promises together,
+      // adding content to the page for each chapter
+      return sequence.then(function() {
+        // Wait for everything in the sequence so far,
+        // then wait for this chapter to arrive.
+        return chapterPromise;
+      }).then(function(chapter) {
+        addHtmlToPage(chapter.html);
+      });
+    }, Promise.resolve());
 }).then(function() {
-  // And we're all done!
   addTextToPage("All done");
 }).catch(function(err) {
-  // Catch any error that happened along the way
+  // catch any error that happened along the way
   addTextToPage("Argh, broken: " + err.message);
 }).then(function() {
-  // Always hide the spinner
   document.querySelector('.spinner').style.display = 'none';
 })
